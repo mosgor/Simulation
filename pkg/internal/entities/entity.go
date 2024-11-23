@@ -1,10 +1,5 @@
 package entity
 
-type Positionable interface {
-	Positions() [2]int
-	SetPositions(int, int)
-}
-
 type Entity struct {
 	xPos, yPos int
 }

@@ -1,16 +1,22 @@
 package field
 
 import (
-	"Simulation/pkg/internal/entities"
-	"Simulation/pkg/internal/entities/creatures"
-	"math/rand"
+	"errors"
 )
 
+type Positionable interface {
+	Positions() [2]int
+	SetPositions(int, int)
+}
+
+type Movable interface {
+	MakeMove(f *Field)
+}
+
 type Field struct {
-	sizeX, sizeY int
-	Entities     [][]entity.Positionable
-	//Entities     map[[2]int]entity.Positionable
-	//Rendered     [][]rune
+	SizeX, SizeY int
+	Entities     []Positionable
+	ClosedCells  map[[2]int]struct{}
 }
 
 func (f *Field) Init(sizeX, sizeY int) {
@@ -18,159 +24,118 @@ func (f *Field) Init(sizeX, sizeY int) {
 		sizeX = 5
 		sizeY = 5
 	}
-	f.sizeX = sizeX
-	f.sizeY = sizeY
-	//f.Entities = make(map[[2]int]entity.Positionable, 24)
-	for i := 0; i < sizeY; i++ {
-		//f.Rendered = append(f.Rendered, make([]rune, sizeX))
-		f.Entities = append(f.Entities, make([]entity.Positionable, sizeX))
-		//for j := 0; j < sizeX; j++ {
-		//f.Rendered[i][j] = '.'
-		//}
+	f.SizeX = sizeX
+	f.SizeY = sizeY
+	f.Entities = make([]Positionable, 0, 24)
+	f.ClosedCells = make(map[[2]int]struct{}, 24)
+}
+
+func (f *Field) AddEntity(e Positionable) error {
+	coords := e.Positions()
+	if _, ok := f.ClosedCells[coords]; ok {
+		return errors.New("this position is already closed")
 	}
+	f.Entities = append(f.Entities, e)
+	f.ClosedCells[coords] = struct{}{}
+	return nil
+}
 
-	herbivoreCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 3
-	for i := 0; i < herbivoreCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
-		//_, ok := f.Entities[[2]int{yPos, xPos}]
-		//if ok {
-		//	i--
-		//	continue
-		//}
-
-		if f.Entities[yPos][xPos] != nil {
-			i--
-			continue
+func (f *Field) RemoveEntity(e Positionable) {
+	for i, v := range f.Entities {
+		if v == e {
+			coords := e.Positions()
+			delete(f.ClosedCells, coords)
+			f.Entities = append(f.Entities[i:], f.Entities[i+1:]...)
+			break
 		}
-
-		herbivore := creatures.Herbivore{}
-		herbivore.SetPositions(xPos, yPos)
-		herbivore.Health = rand.Int()%5 + 5
-		herbivore.Speed = rand.Int()%2 + 1
-		herbivore.Satiety = 5
-		//f.Entities[[2]int{yPos, xPos}] = &herbivore
-		f.Entities[yPos][xPos] = &herbivore
-	}
-
-	predatorCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 2
-	for i := 0; i < predatorCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
-		//_, ok := f.Entities[[2]int{yPos, xPos}]
-		//if ok {
-		//	i--
-		//	continue
-		//}
-
-		if f.Entities[yPos][xPos] != nil {
-			i--
-			continue
-		}
-
-		predator := creatures.Predator{}
-		predator.SetPositions(xPos, yPos)
-		predator.Health = rand.Int()%5 + 5
-		predator.Speed = rand.Int()%2 + 1
-		predator.Satiety = 5
-		predator.Force = rand.Int()%5 + 2
-		//f.Entities[[2]int{yPos, xPos}] = &predator
-		f.Entities[yPos][xPos] = &predator
-	}
-
-	treeCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 2
-	for i := 0; i < treeCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
-		//_, ok := f.Entities[[2]int{yPos, xPos}]
-		//if ok {
-		//	i--
-		//	continue
-		//}
-
-		if f.Entities[yPos][xPos] != nil {
-			i--
-			continue
-		}
-
-		tree := entity.Tree{}
-		tree.SetPositions(xPos, yPos)
-		//f.Entities[[2]int{yPos, xPos}] = &tree
-		f.Entities[yPos][xPos] = &tree
-	}
-
-	rockCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 2
-	for i := 0; i < rockCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
-		//_, ok := f.Entities[[2]int{yPos, xPos}]
-		//if ok {
-		//	i--
-		//	continue
-		//}
-
-		if f.Entities[yPos][xPos] != nil {
-			i--
-			continue
-		}
-
-		rock := entity.Rock{}
-		rock.SetPositions(xPos, yPos)
-		//f.Entities[[2]int{yPos, xPos}] = &rock
-		f.Entities[yPos][xPos] = &rock
-	}
-
-	grassCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 3
-	for i := 0; i < grassCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
-		//_, ok := f.Entities[[2]int{yPos, xPos}]
-		//if ok {
-		//	i--
-		//	continue
-		//}
-
-		if f.Entities[yPos][xPos] != nil {
-			i--
-			continue
-		}
-
-		grass := entity.Grass{}
-		grass.SetPositions(xPos, yPos)
-		//f.Entities[[2]int{yPos, xPos}] = &grass
-		f.Entities[yPos][xPos] = &grass
 	}
 }
 
-func (f *Field) Render() [][]rune {
-	var renderedMap = make([][]rune, f.sizeY)
-	for i := 0; i < f.sizeY; i++ {
-		renderedMap[i] = make([]rune, f.sizeX)
-	}
-	//for k, v := range f.Entities {
-	for i := 0; i < f.sizeY; i++ {
-		for j := 0; j < f.sizeX; j++ {
-			//switch v.(type) {
-			switch f.Entities[i][j].(type) {
-			case *entity.Grass:
-				//f.Rendered[k[0]][k[1]] = '🌿'
-				renderedMap[i][j] = '🌿'
-			case *entity.Tree:
-				//f.Rendered[k[0]][k[1]] = '🌲'
-				renderedMap[i][j] = '🌲'
-			case *entity.Rock:
-				//f.Rendered[k[0]][k[1]] = '🪨'
-				renderedMap[i][j] = '🪨'
-			case *creatures.Predator:
-				//f.Rendered[k[0]][k[1]] = '🐺'
-				renderedMap[i][j] = '🐺'
-			case *creatures.Herbivore:
-				//f.Rendered[k[0]][k[1]] = '🐑'
-				renderedMap[i][j] = '🐑'
-			case nil:
-				renderedMap[i][j] = '.'
-			}
+func (f *Field) GetEntityAt(x, y int) Positionable {
+	for _, e := range f.Entities {
+		pos := e.Positions()
+		if pos[0] == y && pos[1] == x {
+			return e
 		}
+	}
+	return nil
+}
+
+func (f *Field) FindNearest(start [2]int, match func(Positionable) bool) Positionable {
+	directions := [4][2]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
+	queue := [][2]int{start}
+	visited := make(map[[2]int]struct{})
+	visited[start] = struct{}{}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for _, d := range directions {
+			neighbor := [2]int{current[0] + d[0], current[1] + d[1]}
+			if neighbor[0] < 0 || neighbor[1] < 0 || neighbor[0] >= f.SizeX || neighbor[1] >= f.SizeY {
+				continue
+			}
+			entity := f.GetEntityAt(neighbor[0], neighbor[1])
+			if entity != nil {
+				if match(entity) {
+					return entity
+				} else {
+					visited[neighbor] = struct{}{}
+					continue
+				}
+			}
+			if _, ok := visited[neighbor]; ok {
+				continue
+			}
+			queue = append(queue, neighbor)
+			visited[neighbor] = struct{}{}
+		}
+	}
+	return nil
+}
+
+func (f *Field) FindPathBFS(start, goal [2]int) [][2]int {
+	directions := [4][2]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
+	queue := [][2]int{start}
+	visited := make(map[[2]int]struct{})
+	parent := make(map[[2]int][2]int)
+	visited[start] = struct{}{}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		if current == goal {
+			var path [][2]int
+			for at := goal; at != start; at = parent[at] {
+				path = append([][2]int{at}, path...)
+			}
+			path = append([][2]int{start}, path...)
+			return path
+		}
+		for _, d := range directions {
+			neighbor := [2]int{current[0] + d[0], current[1] + d[1]}
+			if neighbor[0] < 0 || neighbor[1] < 0 || neighbor[0] >= f.SizeX || neighbor[1] >= f.SizeY {
+				continue
+			}
+			if _, ok := visited[neighbor]; ok || f.GetEntityAt(neighbor[0], neighbor[1]) != nil {
+				continue
+			}
+			queue = append(queue, neighbor)
+			visited[neighbor] = struct{}{}
+			parent[neighbor] = current
+		}
+	}
+	return nil
+}
+
+func (f *Field) Render(renderFunc func(e Positionable) rune) [][]rune {
+	var renderedMap = make([][]rune, f.SizeY)
+	for i := 0; i < f.SizeY; i++ {
+		renderedMap[i] = make([]rune, f.SizeX)
+		for j := 0; j < f.SizeX; j++ {
+			renderedMap[i][j] = '.'
+		}
+	}
+	for _, v := range f.Entities {
+		renderedMap[v.Positions()[0]][v.Positions()[1]] = renderFunc(v)
 	}
 	return renderedMap
 }
