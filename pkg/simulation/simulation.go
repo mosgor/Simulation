@@ -12,6 +12,10 @@ import (
 type Simulation struct {
 	field.Field
 	roundCounter int
+	SizeX, SizeY int
+	Rounds       int
+	GrowthRate   int
+	TurnDuration time.Duration
 }
 
 func (s *Simulation) showMap() {
@@ -53,14 +57,28 @@ func (s *Simulation) addGrass() {
 	}
 }
 
-func (s *Simulation) StartSimulation(sizeX, sizeY int) {
+func (s *Simulation) StartSimulation() {
+	if s.SizeX*s.SizeY < 24 {
+		s.SizeX = 5
+		s.SizeY = 5
+	}
+	if s.TurnDuration == 0 {
+		s.TurnDuration = 2
+	}
+	if s.Rounds == 0 {
+		s.Rounds = 10
+	}
+	if s.GrowthRate == 0 {
+		s.GrowthRate = 5
+	}
+
 	s.roundCounter++
 	fmt.Println("Round: ", s.roundCounter)
-	s.Init(sizeX, sizeY)
-	herbivoreCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 3
+	s.Init(s.SizeX, s.SizeY)
+	herbivoreCount := rand.Int()%int(float32(s.SizeX)*float32(s.SizeY)*0.1) + 3
 	for i := 0; i < herbivoreCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
+		xPos := rand.Int() % s.SizeX
+		yPos := rand.Int() % s.SizeY
 		herbivore := creatures.Herbivore{}
 		herbivore.SetPositions(xPos, yPos)
 		herbivore.Health = rand.Int()%5 + 5
@@ -72,10 +90,10 @@ func (s *Simulation) StartSimulation(sizeX, sizeY int) {
 		}
 	}
 
-	predatorCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 2
+	predatorCount := rand.Int()%int(float32(s.SizeX)*float32(s.SizeY)*0.1) + 2
 	for i := 0; i < predatorCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
+		xPos := rand.Int() % s.SizeX
+		yPos := rand.Int() % s.SizeY
 		predator := creatures.Predator{}
 		predator.SetPositions(xPos, yPos)
 		predator.Health = rand.Int()%5 + 5
@@ -88,10 +106,10 @@ func (s *Simulation) StartSimulation(sizeX, sizeY int) {
 		}
 	}
 
-	treeCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 2
+	treeCount := rand.Int()%int(float32(s.SizeX)*float32(s.SizeY)*0.1) + 2
 	for i := 0; i < treeCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
+		xPos := rand.Int() % s.SizeX
+		yPos := rand.Int() % s.SizeY
 		tree := entity.Tree{}
 		tree.SetPositions(xPos, yPos)
 		err := s.AddEntity(&tree)
@@ -100,10 +118,10 @@ func (s *Simulation) StartSimulation(sizeX, sizeY int) {
 		}
 	}
 
-	rockCount := rand.Int()%int(float32(sizeX)*float32(sizeY)*0.1) + 2
+	rockCount := rand.Int()%int(float32(s.SizeX)*float32(s.SizeY)*0.1) + 2
 	for i := 0; i < rockCount; i++ {
-		xPos := rand.Int() % sizeX
-		yPos := rand.Int() % sizeY
+		xPos := rand.Int() % s.SizeX
+		yPos := rand.Int() % s.SizeY
 		rock := entity.Rock{}
 		rock.SetPositions(xPos, yPos)
 		err := s.AddEntity(&rock)
@@ -111,12 +129,11 @@ func (s *Simulation) StartSimulation(sizeX, sizeY int) {
 			i--
 		}
 	}
-
 	s.addGrass()
 	s.showMap()
 
-	for i := 0; i < 10; i++ {
-		time.Sleep(time.Second)
+	for i := 2; i <= s.Rounds; i++ {
+		time.Sleep(s.TurnDuration * time.Second)
 		if i%5 == 0 {
 			s.addGrass()
 		}

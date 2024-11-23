@@ -5,7 +5,7 @@ type Entity struct {
 }
 
 func (e *Entity) Positions() [2]int {
-	return [2]int{e.yPos, e.xPos}
+	return [2]int{e.xPos, e.yPos}
 }
 
 func (e *Entity) SetPositions(x, y int) {

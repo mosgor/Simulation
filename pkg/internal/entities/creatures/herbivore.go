@@ -10,29 +10,32 @@ type Herbivore struct {
 }
 
 func (h *Herbivore) MakeMove(f *field.Field) {
-	h.Satiety--
+	if h.Satiety == 0 {
+		h.Health -= 2
+		if h.Health <= 0 {
+			f.RemoveEntity(h)
+		}
+	} else {
+		h.Satiety--
+	}
 	pos := h.Positions()
 	delete(f.ClosedCells, pos)
 
-	nearest := f.FindNearest([2]int{pos[1], pos[0]}, func(e field.Positionable) bool {
+	path := f.FindNearest(pos, func(e field.Positionable) bool {
 		_, ok := e.(*entity.Grass)
 		return ok
 	})
-	if nearest == nil {
+	if path == nil {
 		return
 	}
-	goalPos := nearest.Positions()
-	start := [2]int{pos[1], pos[0]}
-	goal := [2]int{goalPos[1], goalPos[0]}
-	path := f.FindPathBFS(start, goal)
-	if len(path) > 1 {
-		next := path[h.Speed]
-		h.SetPositions(next[0], next[1])
+	next := h.Speed % len(path)
+	for _, ok := f.ClosedCells[path[next]]; ok && next > 0; {
+		next--
 	}
-	pos = h.Positions()
-	f.ClosedCells[pos] = struct{}{}
-	if pos[1] == goal[1] && pos[0] == goal[0] {
-		f.RemoveEntity(nearest)
+	h.SetPositions(path[next][0], path[next][1])
+	f.ClosedCells[path[next]] = struct{}{}
+	if path[next][1] == path[len(path)-2][1] && path[next][0] == path[len(path)-2][0] {
+		f.RemoveEntity(f.GetEntityAt(path[len(path)-1][0], path[len(path)-1][1]))
 		h.Satiety++
 	}
 }

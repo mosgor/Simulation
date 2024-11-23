@@ -1,6 +1,8 @@
 package creatures
 
-import "Simulation/pkg/internal/field"
+import (
+	"Simulation/pkg/internal/field"
+)
 
 type Predator struct {
 	Creature
@@ -8,32 +10,35 @@ type Predator struct {
 }
 
 func (p *Predator) MakeMove(f *field.Field) {
-	p.Satiety--
+	if p.Satiety == 0 {
+		p.Health -= 2
+		if p.Health <= 0 {
+			f.RemoveEntity(p)
+		}
+	} else {
+		p.Satiety--
+	}
 	pos := p.Positions()
 	delete(f.ClosedCells, pos)
 
-	nearest := f.FindNearest([2]int{pos[1], pos[0]}, func(e field.Positionable) bool {
+	path := f.FindNearest(pos, func(e field.Positionable) bool {
 		_, ok := e.(*Herbivore)
 		return ok
 	})
-	if nearest == nil {
+	if path == nil {
 		return
 	}
-	goalPos := nearest.Positions()
-	start := [2]int{pos[1], pos[0]}
-	goal := [2]int{goalPos[1], goalPos[0]}
-	path := f.FindPathBFS(start, goal)
-	if len(path) > 1 {
-		next := path[p.Speed]
-		p.SetPositions(next[0], next[1])
+	next := p.Speed % len(path)
+	for _, ok := f.ClosedCells[path[next]]; ok && next > 0; {
+		next--
 	}
-	pos = p.Positions()
-	f.ClosedCells[pos] = struct{}{}
-	if pos[1] == goal[1] && pos[0] == goal[0] {
-		herbivore := nearest.(*Herbivore)
+	p.SetPositions(path[next][0], path[next][1])
+	f.ClosedCells[path[next]] = struct{}{}
+	if path[next][1] == path[len(path)-2][1] && path[next][0] == path[len(path)-2][0] {
+		herbivore := f.GetEntityAt(path[len(path)-1][0], path[len(path)-1][1]).(*Herbivore)
 		herbivore.Health -= p.Force
-		p.Satiety++
 		if herbivore.Health <= 0 {
+			p.Satiety++
 			f.RemoveEntity(herbivore)
 		}
 	}

@@ -5,6 +5,12 @@ import (
 )
 
 func main() {
-	sim := simulation.Simulation{}
-	sim.StartSimulation(10, 10)
+	sim := simulation.Simulation{
+		SizeX:        15,
+		SizeY:        15,
+		Rounds:       15,
+		GrowthRate:   5,
+		TurnDuration: 1,
+	}
+	sim.StartSimulation()
 }
